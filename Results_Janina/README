@@ -1,4 +1,6 @@
-combine all virus fasta files 
+Work from Janina Rahlff, janina.rahlff@uni-jena.de 
+
+#combine all virus fasta files 
 
 find . -name "*.fa" -print0 | xargs -0 cat >> x.fa 
 
