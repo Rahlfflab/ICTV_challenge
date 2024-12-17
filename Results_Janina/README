@@ -1,0 +1,44 @@
+combine all virus fasta files 
+
+find . -name "*.fa" -print0 | xargs -0 cat >> x.fa 
+
+ 
+#Run Prodigal v.2.6.3 [1] 
+
+prodigal -q -i combined.fasta -a combined.faa -o combined.fasta.genes -d  combined.genes.fna -m -p meta 
+
+ 
+#Merge protein files of data and database for vConTACT2 [2] 
+
+The database can be found at INPHARED: https://github.com/RyanCook94/inphared/tree/0eceeee82c5cdbb91e02c3e03f52bca1e98021e0 [3] 
+
+cat 1Mar2024_vConTACT2_proteins.faa combined.faa > combined_withMarch2024db.faa  
+
+cat ./combined.faa  | awk '$1 ~/>/ {gsub(/>/,"",$1);print $1}' | awk -F"_" 'BEGIN{print "protein_id,contig_id,keywords"};{printf $0"," ; $NF=""; print $0",NOKEY"}' > genome_to_genome_final-viral-combined.csv 
+
+sed "s/ /_/g" genome_to_genome_final-viral-combined.csv > genome_to_genome_final-viral-combined_nogaps.csv 
+
+cat 1Mar2024_vConTACT2_gene_to_genome.csv genome_to_genome_final-viral-combined_nogaps.csv>gene_to_genome_combined.csv 
+
+#run vConTACT2 v.0.11.3 on combined data and database amino acid files [2] 
+
+source /vast/groups/VEO/tools/anaconda3/etc/profile.d/conda.sh && conda activate vcontact2_p310  
+
+vcontact2 --raw-proteins /work/vu73weg/projects/challenge/combined_withMarch2024db.faa  --rel-mode 'Diamond' --proteins-fp /work/vu73weg/projects/challenge/gene_to_genome_combined.csv --db 'None' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin /home/groups/VEO/tools/cluster_one/v1.0/cluster_one-1.0.jar --output-dir vcontact_output_combined_db1Mar2024_new -t 10 
+
+#run graphanalyzer.py (https://github.com/lazzarigioele/graphanalyzer) 1.6.0 to compile results [4] 
+
+conda activate grapha  
+
+python /home/vu73weg/miniconda3/pkgs/graphanalyzer-1.6.0-hdfd78af_0/bin/graphanalyzer.py --graph c1.ntw --csv genome_by_genome_overview.csv --metas ./1Mar2024_data_excluding_refseq.tsv --output ./ --prefix ICTVTaxoChallenge --threads 2 
+
+
+#References: 
+
+    Hyatt, D., et al. (2010). BMC bioinformatics, 11(1), 119. https://doi.org/10.1186/1471-2105-11-119  
+
+    Bolduc, B., et al. (2017). PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243  
+
+    Cook, R., et al. (2021). Phage (New Rochelle), 2(4), 214-223. https://doi.org/10.1089/phage.2021.0007  
+
+    Pandolfo, M., et al. (2022). mSystems, 7(5), e0074122. https://doi.org/10.1128/msystems.00741-22  
